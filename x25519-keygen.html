@@ -1,0 +1,68 @@
+-<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>x25519-keygen</title>
+    <script src="https://cdn.jsdelivr.net/npm/tweetnacl@1.0.3/nacl-fast.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tweetnacl-util@0.15.1/nacl-util.min.js"></script>
+</head>
+<body>
+    <button id="generateBtn">重新生成</button>
+    <div>
+        <span>公钥：</span>
+        <input type="text" id="publicKey" readonly style="width:400px;">
+        <button id="copyPub">复制</button>
+    </div>
+    <div>
+        <span>私钥：</span>
+        <input type="text" id="privateKey" readonly style="width:400px;">
+        <button id="copyPriv">复制</button>
+    </div>
+    <script>
+        (function() {
+            const generateBtn = document.getElementById('generateBtn');
+            const publicKeyInput = document.getElementById('publicKey');
+            const privateKeyInput = document.getElementById('privateKey');
+
+            function generateKeys() {
+                try {
+                    if (typeof nacl === 'undefined' || typeof nacl.util === 'undefined') {
+                        alert('库加载失败，请刷新页面');
+                        return;
+                    }
+                    const keyPair = nacl.box.keyPair();
+                    const pubBase64 = nacl.util.encodeBase64(keyPair.publicKey);
+                    const privBase64 = nacl.util.encodeBase64(keyPair.secretKey);
+                    publicKeyInput.value = pubBase64;
+                    privateKeyInput.value = privBase64;
+                } catch(e) {
+                    alert('生成失败: ' + e.message);
+                }
+            }
+
+            generateBtn.addEventListener('click', generateKeys);
+
+            document.getElementById('copyPub').addEventListener('click', function() {
+                const text = publicKeyInput.value;
+                if (!text) return;
+                navigator.clipboard.writeText(text).catch(() => {
+                    publicKeyInput.select();
+                    document.execCommand('copy');
+                });
+            });
+
+            document.getElementById('copyPriv').addEventListener('click', function() {
+                const text = privateKeyInput.value;
+                if (!text) return;
+                navigator.clipboard.writeText(text).catch(() => {
+                    privateKeyInput.select();
+                    document.execCommand('copy');
+                });
+            });
+
+            generateKeys();
+        })();
+    </script>
+</body>
+</html>

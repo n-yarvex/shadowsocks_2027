@@ -19,9 +19,9 @@ import (
 )
 
 type ServerSession struct {
-    PfsKey    []byte
-    Expire    time.Time
-    NfsKeys   sync.Map
+    PfsKey     []byte
+    Expire     time.Time
+    NfsKeys    sync.Map
     NfsKeysCnt int32
 }
 
@@ -129,7 +129,7 @@ func (i *ServerInstance) Close() error {
 }
 
 func (i *ServerInstance) checkRate(addr string) bool {
-    return true // 速率限制已禁用
+    return true
 }
 
 func (i *ServerInstance) Handshake(conn net.Conn) (*CommonConn, error) {
@@ -282,7 +282,8 @@ func (i *ServerInstance) Handshake(conn net.Conn) (*CommonConn, error) {
         return nil, fmt.Errorf("read encrypted pfs key: %w", err)
     }
     log.Printf("[SERVER-HANDSHAKE] encryptedPfsPublicKey: %x", encryptedPfsPublicKey[:64])
-    if _, err := nfsAEAD.Open(encryptedPfsPublicKey[:0], MaxNonce, encryptedPfsPublicKey, nil); err != nil {
+    // 修正：使用 nil nonce 自动递增
+    if _, err := nfsAEAD.Open(encryptedPfsPublicKey[:0], nil, encryptedPfsPublicKey, nil); err != nil {
         log.Printf("[SERVER-HANDSHAKE] decrypt PFS key error: %v", err)
         return nil, fmt.Errorf("decrypt pfs key: %w", err)
     }
@@ -335,8 +336,8 @@ func (i *ServerInstance) Handshake(conn net.Conn) (*CommonConn, error) {
     i.Sessions[ticket] = &ServerSession{PfsKey: pfsKey, Expire: expireTime, NfsKeys: sync.Map{}, NfsKeysCnt: 0}
     i.RWLock.Unlock()
     serverHello := make([]byte, mlkemCTSize+x25519KeySize+aeadOverhead+x25519KeySize)
-    // 修正：Seal 结果写入正确位置
-    sealedPfs := nfsAEAD.Seal(nil, MaxNonce, serverPfsPublicKey, nil)
+    // 修正：使用 nil nonce 自动递增
+    sealedPfs := nfsAEAD.Seal(nil, nil, serverPfsPublicKey, nil)
     copy(serverHello[:mlkemCTSize+x25519KeySize+aeadOverhead], sealedPfs)
     sealedTicket := c.AEAD.Seal(nil, nil, ticket[:], nil)
     copy(serverHello[mlkemCTSize+x25519KeySize+aeadOverhead:], sealedTicket)
@@ -352,10 +353,10 @@ func (i *ServerInstance) Handshake(conn net.Conn) (*CommonConn, error) {
 func NewServerConn(conn net.Conn, cfg *Config) (*FakeHTTPConn, error) {
     log.Printf("[SERVER-HTTP] NewServerConn start")
     fc := &FakeHTTPConn{
-        RawConn:   NewRawConn(conn),
-        host:      cfg.Host,
-        isClient:  false,
-        chunkBuf:  make([]byte, 0, 64*1024),
+        RawConn:  NewRawConn(conn),
+        host:     cfg.Host,
+        isClient: false,
+        chunkBuf: make([]byte, 0, 64*1024),
     }
     if err := fc.serverHandshake(); err != nil {
         log.Printf("[SERVER-HTTP] serverHandshake error: %v", err)

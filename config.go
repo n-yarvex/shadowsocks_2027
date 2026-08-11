@@ -1,5 +1,23 @@
 package main
-import("bufio""bytes""crypto/cipher""crypto/rand""encoding/base64""encoding/json""fmt""io""math/big""net""os""strconv""strings""sync""time""golang.org/x/crypto/chacha20""golang.org/x/crypto/chacha20poly1305""lukechampine.com/blake3")
+import("bufio"
+"bytes"
+"crypto/cipher"
+"crypto/rand"
+"encoding/base64"
+"encoding/json"
+"fmt"
+"io"
+"math/big"
+"net"
+"os"
+"strconv"
+"strings"
+"sync"
+"time"
+"golang.org/x/crypto/chacha20"
+"golang.org/x/crypto/chacha20poly1305"
+"lukechampine.com/blake3"
+)
 const(maxHeaderSize=4096;maxChunkSize=64*1024;nonceSize=24;keySize=32;mlkemCTSize=1088;mlkemPubSize=1184;x25519KeySize=32;aeadOverhead=16;maxPayloadSize=8192;maxNfsKeys=1024;handshakeRate=time.Second;cleanupInterval=time.Minute;rateCleanupAge=10*time.Minute)
 type Config struct{UUID string`json:"uuid"`;IP string`json:"ip"`;Port int`json:"port"`;Host string`json:"host"`;UserAgent string`json:"user_agent"`;Keys[][]byte`json:"keys"`}
 func(c*Config)UnmarshalJSON(data[]byte)error{type Alias Config;aux:=&struct{Keys[]string`json:"keys"`;*Alias}{Alias:(*Alias)(c)};if err:=json.Unmarshal(data,aux);err!=nil{return err};c.Keys=make([][]byte,len(aux.Keys));for i,s:=range aux.Keys{b,err:=base64.StdEncoding.DecodeString(s);if err!=nil{return fmt.Errorf("decode key %d: %w",i,err)};c.Keys[i]=b};return nil}

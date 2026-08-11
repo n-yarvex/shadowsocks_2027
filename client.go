@@ -172,8 +172,8 @@ func (i *ClientInstance) Handshake(conn net.Conn) (*CommonConn, error) {
     }
     clientPfsPublicKey := append(mlkemDKey.EncapsulationKey().Bytes(), x25519SKey.PublicKey().Bytes()...)
     log.Printf("[CLIENT-HANDSHAKE] clientPfsPublicKey: %x", clientPfsPublicKey)
-    // 修正：使用 MaxNonce 加密 PFS 公钥
-    sealedPfs := nfsAEAD.Seal(nil, MaxNonce, clientPfsPublicKey, nil)
+    // 修正：使用 nil nonce 自动递增
+    sealedPfs := nfsAEAD.Seal(nil, nil, clientPfsPublicKey, nil)
     copy(clientHello[relaysTotal+18:relaysTotal+18+mlkemPubSize+x25519KeySize], sealedPfs)
     log.Printf("[CLIENT-HANDSHAKE] sealed PFS key: %x", clientHello[relaysTotal+18:relaysTotal+18+mlkemPubSize+x25519KeySize])
     log.Printf("[CLIENT-HANDSHAKE] full clientHello len=%d, first64=%x", len(clientHello), clientHello[:64])
@@ -187,7 +187,8 @@ func (i *ClientInstance) Handshake(conn net.Conn) (*CommonConn, error) {
         return nil, fmt.Errorf("read server pfs public key: %w", err)
     }
     log.Printf("[CLIENT-HANDSHAKE] received encryptedPfsPublicKey: %x", encryptedPfsPublicKey)
-    if _, err := nfsAEAD.Open(encryptedPfsPublicKey[:0], MaxNonce, encryptedPfsPublicKey, nil); err != nil {
+    // 修正：使用 nil nonce 自动递增
+    if _, err := nfsAEAD.Open(encryptedPfsPublicKey[:0], nil, encryptedPfsPublicKey, nil); err != nil {
         log.Printf("[CLIENT-HANDSHAKE] decrypt PFS key error: %v", err)
         return nil, fmt.Errorf("decrypt server pfs public key: %w", err)
     }

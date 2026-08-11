@@ -1,5 +1,21 @@
 package main
-import("bytes""crypto/cipher""crypto/ecdh""crypto/mlkem""crypto/rand""fmt""io""log""net""strconv""strings""sync""sync/atomic""time""lukechampine.com/blake3")
+import(
+"bytes"
+"crypto/cipher"
+"crypto/ecdh"
+"crypto/mlkem"
+"crypto/rand"
+"fmt"
+"io"
+"log"
+"net"
+"strconv"
+"strings"
+"sync"
+"sync/atomic"
+"time"
+"lukechampine.com/blake3"
+)
 type ServerSession struct{PfsKey[]byte;Expire time.Time;NfsKeys sync.Map;NfsKeysCnt int32}
 type ServerInstance struct{NfsSKeys[]any;NfsPKeysBytes[][]byte;Hash32s[][32]byte;RelaysLength int;Sessions map[[16]byte]*ServerSession;Tickets[][16]byte;Lasts map[int64][16]byte;Closed bool;RWLock sync.RWMutex;handshakeLim sync.Map}
 func(i*ServerInstance)Init(nfsSKeysBytes[][]byte)error{if i.NfsSKeys!=nil{return fmt.Errorf("already initialized")};l:=len(nfsSKeysBytes);if l==0{return fmt.Errorf("empty nfsSKeysBytes")};i.NfsSKeys=make([]any,l);i.NfsPKeysBytes=make([][]byte,l);i.Hash32s=make([][32]byte,l);for j,k:=range nfsSKeysBytes{if len(k)==x25519KeySize{priv,err:=ecdh.X25519().NewPrivateKey(k);if err!=nil{return err};i.NfsSKeys[j]=priv;i.NfsPKeysBytes[j]=priv.PublicKey().Bytes();i.RelaysLength+=x25519KeySize+x25519KeySize}else{dk,err:=mlkem.NewDecapsulationKey768(k);if err!=nil{return err};i.NfsSKeys[j]=dk;i.NfsPKeysBytes[j]=dk.EncapsulationKey().Bytes();i.RelaysLength+=mlkemCTSize+x25519KeySize};i.Hash32s[j]=blake3.Sum256(i.NfsPKeysBytes[j])};i.RelaysLength-=x25519KeySize;i.Sessions=make(map[[16]byte]*ServerSession);i.Tickets=make([][16]byte,0,1024);i.Lasts=make(map[int64][16]byte);go i.cleanup();return nil}

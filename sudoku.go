@@ -1,5 +1,13 @@
 package main
-import("bufio""crypto/sha256""encoding/binary""fmt""io""net""sync")
+import(
+"bufio"
+"crypto/sha256"
+"encoding/binary"
+"fmt"
+"io"
+"net"
+"sync"
+)
 const ioBufferSize=32*1024
 type asciiLayout struct{}
 func(*asciiLayout)isData(b byte)bool{return b>=0x21&&b<=0x60}

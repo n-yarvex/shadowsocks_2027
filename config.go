@@ -1,5 +1,6 @@
 package main
-import("bufio"
+import(
+"bufio"
 "bytes"
 "crypto/cipher"
 "crypto/rand"

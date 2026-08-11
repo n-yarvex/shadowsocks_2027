@@ -282,7 +282,6 @@ func (i *ServerInstance) Handshake(conn net.Conn) (*CommonConn, error) {
         return nil, fmt.Errorf("read encrypted pfs key: %w", err)
     }
     log.Printf("[SERVER-HANDSHAKE] encryptedPfsPublicKey: %x", encryptedPfsPublicKey[:64])
-    // 修正：使用 nil nonce 自动递增
     if _, err := nfsAEAD.Open(encryptedPfsPublicKey[:0], nil, encryptedPfsPublicKey, nil); err != nil {
         log.Printf("[SERVER-HANDSHAKE] decrypt PFS key error: %v", err)
         return nil, fmt.Errorf("decrypt pfs key: %w", err)
@@ -336,7 +335,6 @@ func (i *ServerInstance) Handshake(conn net.Conn) (*CommonConn, error) {
     i.Sessions[ticket] = &ServerSession{PfsKey: pfsKey, Expire: expireTime, NfsKeys: sync.Map{}, NfsKeysCnt: 0}
     i.RWLock.Unlock()
     serverHello := make([]byte, mlkemCTSize+x25519KeySize+aeadOverhead+x25519KeySize)
-    // 修正：使用 nil nonce 自动递增
     sealedPfs := nfsAEAD.Seal(nil, nil, serverPfsPublicKey, nil)
     copy(serverHello[:mlkemCTSize+x25519KeySize+aeadOverhead], sealedPfs)
     sealedTicket := c.AEAD.Seal(nil, nil, ticket[:], nil)

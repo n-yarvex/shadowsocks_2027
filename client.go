@@ -139,7 +139,6 @@ func (i *ClientInstance) Handshake(conn net.Conn) (*CommonConn, error) {
         copy(clientHello, iv)
         copy(clientHello[16:relaysTotal], relaysBuf)
         log.Printf("[CLIENT-HANDSHAKE] clientHello before seal: %x", clientHello)
-        // 修正：Seal 结果写入正确位置
         sealedLen := nfsAEAD.Seal(nil, nil, EncodeLength(x25519KeySize), nil)
         copy(clientHello[relaysTotal:relaysTotal+18], sealedLen)
         sealedTicket := nfsAEAD.Seal(nil, nil, ticket, nil)
@@ -158,7 +157,6 @@ func (i *ClientInstance) Handshake(conn net.Conn) (*CommonConn, error) {
     copy(clientHello, iv)
     copy(clientHello[16:relaysTotal], relaysBuf)
     pfsKeyExchangeLength := 18 + mlkemPubSize + x25519KeySize + aeadOverhead
-    // 修正：Seal 结果写入正确位置
     sealedLen := nfsAEAD.Seal(nil, nil, EncodeLength(pfsKeyExchangeLength-18), nil)
     copy(clientHello[relaysTotal:relaysTotal+18], sealedLen)
     log.Printf("[CLIENT-HANDSHAKE] sealed length field: %x", clientHello[relaysTotal:relaysTotal+18])
@@ -174,7 +172,8 @@ func (i *ClientInstance) Handshake(conn net.Conn) (*CommonConn, error) {
     }
     clientPfsPublicKey := append(mlkemDKey.EncapsulationKey().Bytes(), x25519SKey.PublicKey().Bytes()...)
     log.Printf("[CLIENT-HANDSHAKE] clientPfsPublicKey: %x", clientPfsPublicKey)
-    sealedPfs := nfsAEAD.Seal(nil, nil, clientPfsPublicKey, nil)
+    // 修正：使用 MaxNonce 加密 PFS 公钥
+    sealedPfs := nfsAEAD.Seal(nil, MaxNonce, clientPfsPublicKey, nil)
     copy(clientHello[relaysTotal+18:relaysTotal+18+mlkemPubSize+x25519KeySize], sealedPfs)
     log.Printf("[CLIENT-HANDSHAKE] sealed PFS key: %x", clientHello[relaysTotal+18:relaysTotal+18+mlkemPubSize+x25519KeySize])
     log.Printf("[CLIENT-HANDSHAKE] full clientHello len=%d, first64=%x", len(clientHello), clientHello[:64])

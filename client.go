@@ -139,8 +139,11 @@ func (i *ClientInstance) Handshake(conn net.Conn) (*CommonConn, error) {
         copy(clientHello, iv)
         copy(clientHello[16:relaysTotal], relaysBuf)
         log.Printf("[CLIENT-HANDSHAKE] clientHello before seal: %x", clientHello)
-        nfsAEAD.Seal(clientHello[relaysTotal:relaysTotal+18], nil, EncodeLength(x25519KeySize), nil)
-        nfsAEAD.Seal(clientHello[relaysTotal+18:relaysTotal+18+x25519KeySize], nil, ticket, nil)
+        // 修正：Seal 结果写入正确位置
+        sealedLen := nfsAEAD.Seal(nil, nil, EncodeLength(x25519KeySize), nil)
+        copy(clientHello[relaysTotal:relaysTotal+18], sealedLen)
+        sealedTicket := nfsAEAD.Seal(nil, nil, ticket, nil)
+        copy(clientHello[relaysTotal+18:relaysTotal+18+x25519KeySize], sealedTicket)
         log.Printf("[CLIENT-HANDSHAKE] clientHello after seal: %x", clientHello)
         if _, err := conn.Write(clientHello); err != nil {
             log.Printf("[CLIENT-HANDSHAKE] write error: %v", err)
@@ -155,7 +158,9 @@ func (i *ClientInstance) Handshake(conn net.Conn) (*CommonConn, error) {
     copy(clientHello, iv)
     copy(clientHello[16:relaysTotal], relaysBuf)
     pfsKeyExchangeLength := 18 + mlkemPubSize + x25519KeySize + aeadOverhead
-    nfsAEAD.Seal(clientHello[relaysTotal:relaysTotal+18], nil, EncodeLength(pfsKeyExchangeLength-18), nil)
+    // 修正：Seal 结果写入正确位置
+    sealedLen := nfsAEAD.Seal(nil, nil, EncodeLength(pfsKeyExchangeLength-18), nil)
+    copy(clientHello[relaysTotal:relaysTotal+18], sealedLen)
     log.Printf("[CLIENT-HANDSHAKE] sealed length field: %x", clientHello[relaysTotal:relaysTotal+18])
     mlkemDKey, err := mlkem.GenerateKey768()
     if err != nil {
@@ -169,7 +174,8 @@ func (i *ClientInstance) Handshake(conn net.Conn) (*CommonConn, error) {
     }
     clientPfsPublicKey := append(mlkemDKey.EncapsulationKey().Bytes(), x25519SKey.PublicKey().Bytes()...)
     log.Printf("[CLIENT-HANDSHAKE] clientPfsPublicKey: %x", clientPfsPublicKey)
-    nfsAEAD.Seal(clientHello[relaysTotal+18:relaysTotal+18+mlkemPubSize+x25519KeySize], nil, clientPfsPublicKey, nil)
+    sealedPfs := nfsAEAD.Seal(nil, nil, clientPfsPublicKey, nil)
+    copy(clientHello[relaysTotal+18:relaysTotal+18+mlkemPubSize+x25519KeySize], sealedPfs)
     log.Printf("[CLIENT-HANDSHAKE] sealed PFS key: %x", clientHello[relaysTotal+18:relaysTotal+18+mlkemPubSize+x25519KeySize])
     log.Printf("[CLIENT-HANDSHAKE] full clientHello len=%d, first64=%x", len(clientHello), clientHello[:64])
     if _, err := conn.Write(clientHello); err != nil {

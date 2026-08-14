@@ -1,1 +1,9 @@
-{"uuid":"550e8400-e29b-41d4-a716-446655440000","ip":"23.148.204.26","port":8443,"host":"www.bing.com","user_agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36","keys":["K8nke8xzoSM/T9AGbeMgCDEnh7L5OKA1yG/VFKTvuEI="]}
+{
+  "uuid": "550e8400-e29b-41d4-a716-446655440000",
+  "ip": "23.148.204.26",
+  "port": 8443,
+  "host": "www.bing.com",
+  "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+  "keys": ["K8nke8xzoSM/T9AGbeMgCDEnh7L5OKA1yG/VFKTvuEI="],
+  "pow_difficulty": 4
+}
